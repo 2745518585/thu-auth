@@ -1,0 +1,11 @@
+account: username
+
+password:
+  service_name: thu-auth
+
+devices:
+  - 192.168.1.100
+  - 192.168.1.101
+
+monitor:
+  check_interval: 60

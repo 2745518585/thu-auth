@@ -1,0 +1,21 @@
+[project]
+name = "thu-network-autoauth"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "bs4>=0.0.2",
+    "ddddocr>=1.6.1",
+    "jsonschema>=4.26.0",
+    "keyring>=25.7.0",
+    "ping3>=5.1.5",
+    "platformdirs>=4.9.4",
+    "pycryptodome>=3.23.0",
+    "pyyaml>=6.0.3",
+    "questionary>=2.1.1",
+    "requests>=2.33.1",
+]
+
+[project.scripts]
+thu-auth = "thu_network_autoauth.main:main"
