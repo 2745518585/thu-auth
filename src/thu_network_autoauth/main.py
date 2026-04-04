@@ -48,12 +48,12 @@ def main():
 
     while True:
 
-        ips = usereg_api.get_online_ips()
-        logger.info(f"Currently online IPs: {', '.join(ips) if ips else 'None'}")
+        try:
 
-        for ip in config["devices"]:
+            ips = usereg_api.get_online_ips()
+            logger.info(f"Currently online IPs: {', '.join(ips) if ips else 'None'}")
 
-            try:
+            for ip in config["devices"]:
 
                 if not check_ip_available(ip):
                     logger.info(f"IP {ip} is not available, skipping...")
@@ -70,8 +70,8 @@ def main():
                 else:
                     logger.error(f"Failed to send certification request for IP {ip}")
 
-            except Exception as e:
-                logger.error(f"Error processing IP {ip}: {e}")
+        except Exception as e:
+            logger.error(f"Skip a turn for unexpected error occurred: {e}")
 
         time.sleep(config["monitor"]["check_interval"])
 
