@@ -1,5 +1,6 @@
 import time
 import argparse
+from importlib.metadata import version
 from .log import logger
 from .monitor import check_ip_available
 from . import config as Config
@@ -18,6 +19,12 @@ parser.add_argument(
     "-c",
     action="store_true",
     help="Initialize or update the configuration file",
+)
+parser.add_argument(
+    "--version",
+    "-v",
+    action="version",
+    version=f"%(prog)s {version('thu-network-autoauth')}",
 )
 args = parser.parse_args()
 
