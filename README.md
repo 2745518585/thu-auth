@@ -17,8 +17,8 @@ pip install thu-network-autoauth
 在开始使用前，请先运行以下命令设置密码和配置：
 
 ```bash
-thu-auth --password
 thu-auth --config
+thu-auth --password
 ```
 
 无参数运行将启动自动认证服务：
