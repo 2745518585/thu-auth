@@ -23,8 +23,13 @@ config_schema = {
             "properties": {"check_interval": {"type": "integer"}},
             "required": ["check_interval"],
         },
+        "environment": {
+            "type": "object",
+            "properties": {"finger_print": {"type": "string"}},
+            "required": ["finger_print"],
+        },
     },
-    "required": ["account", "password", "devices", "monitor"],
+    "required": ["account", "password", "devices", "monitor", "environment"],
 }
 
 
@@ -57,6 +62,12 @@ def init_config():
         validate=lambda x: x.isdigit() and int(x) > 0,
     ).ask()
 
+    finger_print = questionary.text(
+        "Finger Print: ",
+        default="",
+        validate=lambda x: len(x) == 32,
+    ).ask()
+
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
 
     try:
@@ -65,6 +76,7 @@ def init_config():
             "password": {"service_name": service_name},
             "devices": devices,
             "monitor": {"check_interval": int(check_interval)},
+            "environment": {"finger_print": finger_print},
         }
 
         validate(config, config_schema)

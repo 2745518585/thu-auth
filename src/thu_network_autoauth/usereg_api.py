@@ -11,11 +11,15 @@ from Crypto.Cipher import PKCS1_v1_5
 from .config import load_config
 from .ocr import run_ocr
 from .passwd import get_password
+from .session import get_session
+from .webvpn import get_available_location
 from .log import logger
+
+DEFAULT_LOCATION = "https://usereg.tsinghua.edu.cn/"
 
 
 def check_login(session: requests.Session) -> bool:
-    url = "https://usereg.tsinghua.edu.cn/home"
+    url = get_available_location(DEFAULT_LOCATION) + "/home"
     resp = session.get(url, allow_redirects=False)
     if resp.status_code == 200:
         return True
@@ -23,14 +27,12 @@ def check_login(session: requests.Session) -> bool:
         return False
 
 
-def login() -> requests.Session:
+def login() -> None:
 
     config = load_config()
+    session = get_session()
 
-    global session
-    session = requests.Session()
-
-    def get_public_key(session, base_url):
+    def get_public_key(session: requests.Session, base_url: str):
         resp = session.get(base_url)
         resp.raise_for_status()
         m = re.search(
@@ -42,7 +44,7 @@ def login() -> requests.Session:
             raise Exception("未找到公钥")
         return m.group(1)
 
-    def get_captcha_url(session, base_url):
+    def get_captcha_url(session: requests.Session, base_url: str):
         resp = session.get(base_url)
         resp.raise_for_status()
         m = re.search(r'<img id="loginform-verifycode-image" src="([^"]+)"', resp.text)
@@ -50,18 +52,18 @@ def login() -> requests.Session:
             raise Exception("未找到验证码图片 URL")
         return urljoin(base_url, m.group(1))
 
-    def rsa_encrypt(password, public_key_str):
+    def rsa_encrypt(password: str, public_key_str: str):
         key = RSA.importKey(public_key_str)
         cipher = PKCS1_v1_5.new(key)
         encrypted = cipher.encrypt(password.encode("utf-8"))
         return base64.b64encode(encrypted).decode()
 
     if check_login(session):
-        return session
+        return
 
     logger.info("Start logging in to thu network self-service system")
 
-    base_url = "https://usereg.tsinghua.edu.cn/login"
+    base_url = get_available_location(DEFAULT_LOCATION) + "/login"
 
     # 获取公钥
     public_key = get_public_key(session, base_url)
@@ -103,14 +105,15 @@ def login() -> requests.Session:
 
     if check_login(session):
         logger.info("Login successful")
-        return session
+        return
 
     raise Exception("Login failed")
 
 
 def get_online_ips() -> List[str]:
-    url = "https://usereg.tsinghua.edu.cn/home"
-    session = login()
+    login()
+    session = get_session()
+    url = get_available_location(DEFAULT_LOCATION) + "/home"
 
     logger.info("Getting online IPv4 address list")
 
@@ -134,8 +137,9 @@ def get_online_ips() -> List[str]:
 
 
 def send_certification(ip: str) -> bool:
-    session = login()
-    url = "https://usereg.tsinghua.edu.cn/certification"
+    login()
+    session = get_session()
+    url = get_available_location(DEFAULT_LOCATION) + "/certification"
 
     logger.info(f"Sending certification request, IP: {ip}")
 

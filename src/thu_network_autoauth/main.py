@@ -78,7 +78,7 @@ def main():
                     logger.error(f"Failed to send certification request for IP {ip}")
 
         except Exception as e:
-            logger.error(f"Skip a turn for unexpected error occurred: {e}")
+            logger.exception(f"Skip a turn for unexpected error occurred: {e}")
 
         time.sleep(config["monitor"]["check_interval"])
 
