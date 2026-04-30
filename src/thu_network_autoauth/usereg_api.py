@@ -10,7 +10,7 @@ from Crypto.Cipher import PKCS1_v1_5
 
 from .config import load_config
 from .ocr import run_ocr
-from .passwd import get_password
+from .secret import get_password
 from .session import get_session
 from .webvpn import get_available_location
 from .log import logger

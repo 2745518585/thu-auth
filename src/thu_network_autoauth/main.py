@@ -4,12 +4,18 @@ from importlib.metadata import version
 from .log import logger
 from .monitor import check_ip_available
 from . import config as Config
-from . import passwd
+from . import secret
 from . import usereg_api
 
 FILE_TAG = "[main]"
 
 parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--config",
+    "-c",
+    action="store_true",
+    help="Initialize or update the configuration file",
+)
 parser.add_argument(
     "--password",
     "-p",
@@ -17,10 +23,10 @@ parser.add_argument(
     help="Set or update the password in keyring",
 )
 parser.add_argument(
-    "--config",
-    "-c",
+    "--fingerprint",
+    "-f",
     action="store_true",
-    help="Initialize or update the configuration file",
+    help="Set or update the device fingerprint in keyring",
 )
 parser.add_argument(
     "--version",
@@ -36,14 +42,19 @@ def main():
         Config.init_config()
         return
     if args.password:
-        passwd.set_password()
+        secret.set_password()
+        return
+    if args.fingerprint:
+        secret.set_fingerprint()
         return
 
     logger.info(f"{FILE_TAG} Starting thu-auth...")
 
     try:
-        passwd.get_password()
         config = Config.load_config()
+        secret.get_password()
+        if config["config"]["allow_webvpn"]:
+            secret.get_fingerprint()
 
     except Exception as e:
         logger.error(f"{FILE_TAG} Error loading configuration: {e}")

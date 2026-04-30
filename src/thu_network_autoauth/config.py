@@ -14,7 +14,7 @@ config_schema = {
     "type": "object",
     "properties": {
         "account": {"type": "string"},
-        "password": {
+        "secret": {
             "type": "object",
             "properties": {"service_name": {"type": "string"}},
             "required": ["service_name"],
@@ -25,18 +25,20 @@ config_schema = {
             "properties": {"check_interval": {"type": "integer"}},
             "required": ["check_interval"],
         },
-        "environment": {
-            "type": "object",
-            "properties": {"finger_print": {"type": "string"}},
-            "required": ["finger_print"],
+        "config": {
+            "allow_webvpn": {"type": "boolean"},
+            "required": ["allow_webvpn"],
         },
     },
-    "required": ["account", "password", "devices", "monitor", "environment"],
+    "required": ["account", "secret", "devices", "monitor", "config"],
 }
 
 
 def init_config():
-    config = load_config()
+    try:
+        config = load_config(allow_unvalid=True)
+    except Exception:
+        config = {}
 
     account = questionary.text(
         "THU Account: ",
@@ -45,8 +47,8 @@ def init_config():
     ).ask()
 
     service_name = questionary.text(
-        "Keyring Service Name (for storing password): ",
-        default=config.get("password", {}).get("service_name", "thu-network-autoauth"),
+        "Keyring Service Name (for storing password and fingerprint): ",
+        default=config.get("secret", {}).get("service_name", "thu-network-autoauth"),
         validate=lambda x: len(x) > 0,
     ).ask()
 
@@ -55,7 +57,9 @@ def init_config():
         device = questionary.text(
             "Device IPv4 (leave empty to finish): ",
             default=(
-                config.get("devices", [])[len(devices)] if len(config.get("devices", [])) > len(devices) else ""
+                config.get("devices", [])[len(devices)]
+                if len(config.get("devices", [])) > len(devices)
+                else ""
             ),
             validate=lambda x: len(x) == 0
             or (
@@ -73,10 +77,9 @@ def init_config():
         validate=lambda x: x.isdigit() and int(x) > 0,
     ).ask()
 
-    finger_print = questionary.text(
-        "Finger Print: ",
-        default=config.get("environment", {}).get("finger_print", ""),
-        validate=lambda x: len(x) == 32,
+    allow_webvpn = questionary.confirm(
+        "Allow using WebVPN for authentication if direct login fails?",
+        default=config.get("config", {}).get("allow_webvpn", True),
     ).ask()
 
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
@@ -84,10 +87,10 @@ def init_config():
     try:
         config = {
             "account": account,
-            "password": {"service_name": service_name},
+            "secret": {"service_name": service_name},
             "devices": devices,
             "monitor": {"check_interval": int(check_interval)},
-            "environment": {"finger_print": finger_print},
+            "config": {"allow_webvpn": allow_webvpn},
         }
 
         validate(config, config_schema)
@@ -100,7 +103,7 @@ def init_config():
     )
 
 
-def load_config():
+def load_config(allow_unvalid=False):
     if not os.path.exists(config_path):
         raise Exception(
             f"{FILE_TAG} Config file not found. Please set it using '-c' or '--config' option."
@@ -112,8 +115,11 @@ def load_config():
     try:
         validate(config, config_schema)
     except Exception:
-        raise Exception(
-            f"{FILE_TAG} Configuration validation error; please reconfigure using '-c' or '--config' option"
-        )
+        if allow_unvalid:
+            logger.warning(f"{FILE_TAG} Config file is invalid")
+        else:
+            raise Exception(
+                f"{FILE_TAG} Configuration validation error; please reconfigure using '-c' or '--config' option"
+            )
 
     return config

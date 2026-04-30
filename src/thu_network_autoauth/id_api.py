@@ -4,7 +4,7 @@ import requests
 from gmssl import sm2
 
 from .config import load_config
-from .passwd import get_password
+from .secret import get_password, get_fingerprint
 from .session import get_session
 from .log import logger
 
@@ -73,7 +73,7 @@ def login(force_relogin: bool = False) -> None:
     data = {
         "username": config["account"],
         "password": encrypted_password,
-        "fingerPrint": config["environment"]["finger_print"],
+        "fingerPrint": get_fingerprint(),
         "deviceName": "windows,Edge/148",
         "singleLogin": "on",
     }
@@ -129,7 +129,7 @@ def auth_page(url: str):
 
     data = {
         "i_rememberme": "on",
-        "fingerPrint": config["environment"]["finger_print"],
+        "fingerPrint": get_fingerprint(),
         "fingerGenPrint": get_finger_print_3(session),
     }
 

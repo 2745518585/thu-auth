@@ -69,6 +69,10 @@ def get_available_location(url: str) -> str:
 
     last_check[location] = time.time()
 
+    if not load_config()["config"]["allow_webvpn"]:
+        logger.info(f"{FILE_TAG} WebVPN usage is disabled by configuration, using default URL: {url}")
+        return url
+
     logger.info(f"{FILE_TAG} Checking if default URL is accessible")
 
     try:
