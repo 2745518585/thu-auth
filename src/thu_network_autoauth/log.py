@@ -33,7 +33,6 @@ logger.addHandler(handler)
 
 # 可选：同时输出到控制台
 console = logging.StreamHandler()
-console.setFormatter(formatter)
 console.setFormatter(NoExceptionFormatter("[%(levelname)s] %(message)s"))
 logger.addHandler(console)
 
