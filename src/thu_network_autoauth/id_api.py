@@ -8,11 +8,13 @@ from .passwd import get_password
 from .session import get_session
 from .log import logger
 
+FILE_TAG = "[id_api]"
+
 
 def get_public_key(html: str) -> str:
     m = re.search(r'id="sm2publicKey">([^<]+)<', html)
     if not m:
-        raise Exception("未找到 sm2publicKey")
+        raise Exception(f"{FILE_TAG} sm2publicKey not found in login page")
     return m.group(1).strip()
 
 
@@ -25,7 +27,7 @@ def sm2_encrypt(password: str, public_key: str) -> str:
 
     cipher = sm2_crypt.encrypt(password.encode())
     if not cipher:
-        raise Exception("加密失败")
+        raise Exception(f"{FILE_TAG} SM2 encryption failed")
 
     cipher_hex = cipher.hex()
 
@@ -53,7 +55,7 @@ def login(force_relogin: bool = False) -> None:
     if not force_relogin and check_login(session):
         return
 
-    logger.info("Start logging in to thu electronic ID service system")
+    logger.info(f"{FILE_TAG} Start logging in to thu electronic ID service system")
 
     # Step 1: 访问登录页（拿 cookie + 公钥）
     resp = session.get(LOGIN_PAGE)
@@ -87,10 +89,10 @@ def login(force_relogin: bool = False) -> None:
     resp.raise_for_status()
 
     if check_login(session):
-        logger.info("Login successful")
+        logger.info(f"{FILE_TAG} Login successful")
         return
 
-    raise Exception("Login failed")
+    raise Exception(f"{FILE_TAG} Login failed")
 
 
 CHECK_SINGLE_API = "https://id.tsinghua.edu.cn/do/off/ui/auth/login/checkSingle"
@@ -108,7 +110,7 @@ def get_finger_print_3(session: requests.Session) -> str:
         resp.raise_for_status()
         data = resp.json()
         if data.get("result") != "success":
-            raise Exception(f"Failed to get finger print 3 after re-login: {data}")
+            raise Exception(f"{FILE_TAG} Failed to get finger print 3 after re-login: {data}")
 
     return data.get("object")
 
@@ -123,7 +125,7 @@ def auth_page(url: str):
     if resp.url == url:
         return
 
-    logger.info(f"Authenticating page {url} through ID service")
+    logger.info(f"{FILE_TAG} Authenticating page {url} through ID service")
 
     data = {
         "i_rememberme": "on",
@@ -137,16 +139,15 @@ def auth_page(url: str):
     match = re.search(r'window\.location\.replace\("([^"]+)"\)', resp.text)
 
     if not match:
-        raise Exception("未找到跳转链接")
+        raise Exception(f"{FILE_TAG} Redirect URL not found in response")
     
     redirect_url = match.group(1)
-    logger.info(f"Redirecting to {redirect_url} to complete authentication")
 
     resp = session.get(redirect_url)
     resp.raise_for_status()
 
     if resp.url == url:
-        logger.info(f"Successfully authenticated page {url}")
+        logger.info(f"{FILE_TAG} Successfully authenticated page {url}")
         return
     
-    raise Exception(f"验证失败，访问 {url} 时未能成功认证，当前 URL: {resp.url}")
+    raise Exception(f"{FILE_TAG} Authentication failed for {url}; current URL: {resp.url}")

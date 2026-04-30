@@ -7,6 +7,8 @@ from .log import logger
 
 _ocr = ddddocr.DdddOcr(show_ad=False)
 
+FILE_TAG = "[ocr]"
+
 
 def run_ocr(img_url: str, retries: int = 3, timeout: float = 5.0) -> str:
 
@@ -32,15 +34,15 @@ def run_ocr(img_url: str, retries: int = 3, timeout: float = 5.0) -> str:
                 return result
 
         except requests.RequestException as e:
-            logger.warning(f"Error downloading captcha image {img_url}: {e}")
+            logger.warning(f"{FILE_TAG} Error downloading captcha image {img_url}: {e}")
             # 网络问题 → 重试
             continue
         except Exception as e:
-            logger.warning(f"Error occurred while recognizing captcha {img_url}: {e}")
+            logger.warning(f"{FILE_TAG} Error occurred while recognizing captcha {img_url}: {e}")
             # OCR 或其他异常
             continue
 
-    logger.error(f"Failed to recognize captcha {img_url} after maximum retries")
+    logger.error(f"{FILE_TAG} Failed to recognize captcha {img_url} after maximum retries")
     raise Exception(
-        "Error occurred while recognizing captcha: Failed to recognize captcha after maximum retries"
+        f"{FILE_TAG} Error occurred while recognizing captcha: Failed to recognize captcha after maximum retries"
     )

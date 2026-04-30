@@ -5,8 +5,10 @@ from platformdirs import user_config_dir
 from jsonschema import validate
 from .log import logger
 
+FILE_TAG = "[config]"
+
 config_path = os.path.join(user_config_dir("thu-network-autoauth"), "config.yaml")
-logger.info("Config path: %s", config_path)
+logger.info("%s Config path: %s", FILE_TAG, config_path)
 
 config_schema = {
     "type": "object",
@@ -90,7 +92,7 @@ def init_config():
 
         validate(config, config_schema)
     except Exception:
-        logger.error(f"Configuration validation error")
+        logger.error(f"{FILE_TAG} Configuration validation error")
         return
 
     open(config_path, "w", encoding="utf-8").write(
@@ -101,7 +103,7 @@ def init_config():
 def load_config():
     if not os.path.exists(config_path):
         raise Exception(
-            "Config file not found. Please set it using '-c' or '--config' option."
+            f"{FILE_TAG} Config file not found. Please set it using '-c' or '--config' option."
         )
     else:
         with open(config_path, "r", encoding="utf-8") as f:
@@ -111,7 +113,7 @@ def load_config():
         validate(config, config_schema)
     except Exception:
         raise Exception(
-            f"Configuration validation error, pleace reconfigure using '-c' or '--config' option"
+            f"{FILE_TAG} Configuration validation error; please reconfigure using '-c' or '--config' option"
         )
 
     return config

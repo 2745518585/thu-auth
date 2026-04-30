@@ -3,6 +3,8 @@ import os
 from logging.handlers import RotatingFileHandler
 from platformdirs import user_log_dir
 
+FILE_TAG = "[log]"
+
 class NoExceptionFormatter(logging.Formatter):
     """控制台用：不打印异常堆栈"""
     def format(self, record):
@@ -34,4 +36,4 @@ console.setFormatter(
 )
 logger.addHandler(console)
 
-logger.info("Log path: %s", LOG_PATH)
+logger.info("%s Log path: %s", FILE_TAG, LOG_PATH)
