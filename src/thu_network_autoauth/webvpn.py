@@ -52,15 +52,15 @@ last_location: dict[str, str] = {}
 last_check: dict[str, float] = {}
 
 
-def get_available_location(location: str) -> str:
-    location = urlparse(location).netloc
-    
+def get_available_location(url: str) -> str:
+    location = urlparse(url).netloc
+
     global last_check, last_location
 
     if last_check.get(location) is None:
         last_check[location] = 0
     if last_location.get(location) is None:
-        last_location[location] = location
+        last_location[location] = url
 
     session = get_session()
 
@@ -72,8 +72,8 @@ def get_available_location(location: str) -> str:
     logger.info(f"{FILE_TAG} Checking if default URL is accessible")
 
     try:
-        resp = session.get(location, timeout=5)
-        last_location[location] = location
+        resp = session.get(url, timeout=5)
+        last_location[location] = url
         logger.info(f"{FILE_TAG} Using default URL: {last_location[location]}")
     except Exception as e:
         logger.info(f"{FILE_TAG} Default URL not accessible, trying webvpn")
