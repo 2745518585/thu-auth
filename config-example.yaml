@@ -7,5 +7,7 @@ devices:
   - 192.168.1.100
   - 192.168.1.101
 
-monitor:
-  check_interval: 60
+config:
+  allow_webvpn: true
+  requests_timeout: 2
+  monitor_interval: 60
