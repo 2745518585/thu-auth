@@ -1,17 +1,20 @@
-name: Publish to PyPI
+name: Publish to Test-PyPI
 
 on:
-  push:
-    tags:
-      - "test-v*"
+  pull_request:
+    branches:
+      - master
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  build-and-publish:
+  test-publish:
     runs-on: ubuntu-latest
+
+    environment:
+      name: test-publish
 
     steps:
       - name: Checkout
