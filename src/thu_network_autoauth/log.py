@@ -5,13 +5,16 @@ from platformdirs import user_log_dir
 
 FILE_TAG = "[log]"
 
+
 class NoExceptionFormatter(logging.Formatter):
     """控制台用：不打印异常堆栈"""
+
     def format(self, record):
         record = logging.makeLogRecord(record.__dict__.copy())
         record.exc_info = None
         record.exc_text = None
         return super().format(record)
+
 
 LOG_DIR = user_log_dir("thu-network-autoauth")
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -31,9 +34,7 @@ logger.addHandler(handler)
 # 可选：同时输出到控制台
 console = logging.StreamHandler()
 console.setFormatter(formatter)
-console.setFormatter(
-    NoExceptionFormatter("[%(levelname)s] %(message)s")
-)
+console.setFormatter(NoExceptionFormatter("[%(levelname)s] %(message)s"))
 logger.addHandler(console)
 
 logger.info("%s Log path: %s", FILE_TAG, LOG_PATH)

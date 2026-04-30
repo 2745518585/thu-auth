@@ -110,7 +110,9 @@ def get_finger_print_3(session: requests.Session) -> str:
         resp.raise_for_status()
         data = resp.json()
         if data.get("result") != "success":
-            raise Exception(f"{FILE_TAG} Failed to get finger print 3 after re-login: {data}")
+            raise Exception(
+                f"{FILE_TAG} Failed to get finger print 3 after re-login: {data}"
+            )
 
     return data.get("object")
 
@@ -140,7 +142,7 @@ def auth_page(url: str):
 
     if not match:
         raise Exception(f"{FILE_TAG} Redirect URL not found in response")
-    
+
     redirect_url = match.group(1)
 
     resp = session.get(redirect_url)
@@ -149,5 +151,7 @@ def auth_page(url: str):
     if resp.url == url:
         logger.info(f"{FILE_TAG} Successfully authenticated page {url}")
         return
-    
-    raise Exception(f"{FILE_TAG} Authentication failed for {url}; current URL: {resp.url}")
+
+    raise Exception(
+        f"{FILE_TAG} Authentication failed for {url}; current URL: {resp.url}"
+    )

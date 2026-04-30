@@ -43,7 +43,9 @@ def get_webvpn_url(target_location: str) -> str:
     id_api.auth_page("https://webvpn.tsinghua.edu.cn/")
 
     encoded_location = wengine_encode(target_location)
-    logger.info(f"{FILE_TAG} Encoded Location {target_location} for webvpn: {encoded_location}")
+    logger.info(
+        f"{FILE_TAG} Encoded Location {target_location} for webvpn: {encoded_location}"
+    )
 
     return f"https://webvpn.tsinghua.edu.cn/https/{encoded_location}"
 
@@ -70,7 +72,9 @@ def get_available_location(url: str) -> str:
     last_check[location] = time.time()
 
     if not load_config()["config"]["allow_webvpn"]:
-        logger.info(f"{FILE_TAG} WebVPN usage is disabled by configuration, using default URL: {url}")
+        logger.info(
+            f"{FILE_TAG} WebVPN usage is disabled by configuration, using default URL: {url}"
+        )
         return url
 
     logger.info(f"{FILE_TAG} Checking if default URL is accessible")

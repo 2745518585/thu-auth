@@ -62,14 +62,18 @@ def main():
 
     logger.info(f"{FILE_TAG} Account: {config['account']}")
     logger.info(f"{FILE_TAG} Monitoring IPs: {', '.join(config['devices'])}")
-    logger.info(f"{FILE_TAG} Check interval: {config['monitor']['check_interval']} seconds")
+    logger.info(
+        f"{FILE_TAG} Check interval: {config['monitor']['check_interval']} seconds"
+    )
 
     while True:
 
         try:
 
             ips = usereg_api.get_online_ips()
-            logger.info(f"{FILE_TAG} Currently online IPs: {', '.join(ips) if ips else 'None'}")
+            logger.info(
+                f"{FILE_TAG} Currently online IPs: {', '.join(ips) if ips else 'None'}"
+            )
 
             for ip in config["devices"]:
 
@@ -81,15 +85,23 @@ def main():
                     logger.info(f"{FILE_TAG} IP {ip} is already online, skipping...")
                     continue
 
-                logger.info(f"{FILE_TAG} IP {ip} is not online, sending certification request...")
+                logger.info(
+                    f"{FILE_TAG} IP {ip} is not online, sending certification request..."
+                )
                 success = usereg_api.send_certification(ip)
                 if success:
-                    logger.info(f"{FILE_TAG} Certification request for IP {ip} sent successfully")
+                    logger.info(
+                        f"{FILE_TAG} Certification request for IP {ip} sent successfully"
+                    )
                 else:
-                    logger.error(f"{FILE_TAG} Failed to send certification request for IP {ip}")
+                    logger.error(
+                        f"{FILE_TAG} Failed to send certification request for IP {ip}"
+                    )
 
         except Exception as e:
-            logger.exception(f"{FILE_TAG} Skipping this cycle due to unexpected error: {e}")
+            logger.exception(
+                f"{FILE_TAG} Skipping this cycle due to unexpected error: {e}"
+            )
 
         time.sleep(config["monitor"]["check_interval"])
 

@@ -38,11 +38,15 @@ def run_ocr(img_url: str, retries: int = 3, timeout: float = 5.0) -> str:
             # 网络问题 → 重试
             continue
         except Exception as e:
-            logger.warning(f"{FILE_TAG} Error occurred while recognizing captcha {img_url}: {e}")
+            logger.warning(
+                f"{FILE_TAG} Error occurred while recognizing captcha {img_url}: {e}"
+            )
             # OCR 或其他异常
             continue
 
-    logger.error(f"{FILE_TAG} Failed to recognize captcha {img_url} after maximum retries")
+    logger.error(
+        f"{FILE_TAG} Failed to recognize captcha {img_url} after maximum retries"
+    )
     raise Exception(
         f"{FILE_TAG} Error occurred while recognizing captcha: Failed to recognize captcha after maximum retries"
     )

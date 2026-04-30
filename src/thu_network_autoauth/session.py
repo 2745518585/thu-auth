@@ -4,6 +4,7 @@ from .config import load_config
 
 session = None
 
+
 class SessionWithTimeout(requests.Session):
     def __init__(self):
         super().__init__()
@@ -12,6 +13,7 @@ class SessionWithTimeout(requests.Session):
         if "timeout" not in kwargs:
             kwargs["timeout"] = load_config()["config"]["requests_timeout"]
         return super().request(*args, **kwargs)
+
 
 def get_session():
     global session

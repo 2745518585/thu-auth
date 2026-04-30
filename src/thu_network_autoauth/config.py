@@ -97,7 +97,10 @@ def init_config():
             "secret": {"service_name": service_name},
             "devices": devices,
             "monitor": {"check_interval": int(check_interval)},
-            "config": {"allow_webvpn": allow_webvpn, "requests_timeout": int(requests_timeout)},
+            "config": {
+                "allow_webvpn": allow_webvpn,
+                "requests_timeout": int(requests_timeout),
+            },
         }
 
         validate(config, config_schema)
@@ -130,6 +133,7 @@ def load_config(allow_unvalid=False):
             )
 
     return config
+
 
 def get_timeout():
     config = load_config()
