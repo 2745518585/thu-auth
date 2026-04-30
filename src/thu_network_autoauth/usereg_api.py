@@ -21,7 +21,7 @@ DEFAULT_LOCATION = "https://usereg.tsinghua.edu.cn/"
 
 
 def check_login(session: requests.Session) -> bool:
-    url = get_available_location(DEFAULT_LOCATION) + "/home"
+    url = urljoin(get_available_location(DEFAULT_LOCATION), "home")
     resp = session.get(url, allow_redirects=False)
     if resp.status_code == 200:
         return True
@@ -65,7 +65,7 @@ def login() -> None:
 
     logger.info(f"{FILE_TAG} Start logging in to thu network self-service system")
 
-    base_url = get_available_location(DEFAULT_LOCATION) + "/login"
+    base_url = urljoin(get_available_location(DEFAULT_LOCATION), "login")
 
     # 获取公钥
     public_key = get_public_key(session, base_url)
@@ -115,7 +115,7 @@ def login() -> None:
 def get_online_ips() -> List[str]:
     login()
     session = get_session()
-    url = get_available_location(DEFAULT_LOCATION) + "/home"
+    url = urljoin(get_available_location(DEFAULT_LOCATION), "home")
 
     logger.info(f"{FILE_TAG} Getting online IPv4 address list")
 
@@ -141,7 +141,7 @@ def get_online_ips() -> List[str]:
 def send_certification(ip: str) -> bool:
     login()
     session = get_session()
-    url = get_available_location(DEFAULT_LOCATION) + "/certification"
+    url = urljoin(get_available_location(DEFAULT_LOCATION), "certification")
 
     logger.info(f"{FILE_TAG} Sending certification request, IP: {ip}")
 
