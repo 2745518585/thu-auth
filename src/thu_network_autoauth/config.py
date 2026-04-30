@@ -21,9 +21,12 @@ config_schema = {
         },
         "devices": {"type": "array", "items": {"type": "string"}},
         "config": {
-            "allow_webvpn": {"type": "boolean"},
-            "requests_timeout": {"type": "integer"},
-            "monitor_interval": {"type": "integer"},
+            "type": "object",
+            "properties": {
+                "allow_webvpn": {"type": "boolean"},
+                "requests_timeout": {"type": "integer"},
+                "monitor_interval": {"type": "integer"},
+            },
             "required": ["allow_webvpn", "requests_timeout", "monitor_interval"],
         },
     },
