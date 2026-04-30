@@ -120,7 +120,6 @@ def get_finger_print_3(session: requests.Session) -> str:
 def auth_page(url: str):
 
     login()
-    config = load_config()
     session = get_session()
 
     resp = session.get(url)
