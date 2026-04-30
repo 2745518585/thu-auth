@@ -20,18 +20,14 @@ config_schema = {
             "required": ["service_name"],
         },
         "devices": {"type": "array", "items": {"type": "string"}},
-        "monitor": {
-            "type": "object",
-            "properties": {"check_interval": {"type": "integer"}},
-            "required": ["check_interval"],
-        },
         "config": {
             "allow_webvpn": {"type": "boolean"},
             "requests_timeout": {"type": "integer"},
-            "required": ["allow_webvpn", "requests_timeout"],
+            "monitor_interval": {"type": "integer"},
+            "required": ["allow_webvpn", "requests_timeout", "monitor_interval"],
         },
     },
-    "required": ["account", "secret", "devices", "monitor", "config"],
+    "required": ["account", "secret", "devices", "config"],
 }
 
 
@@ -72,12 +68,6 @@ def init_config():
             break
         devices.append(device)
 
-    check_interval = questionary.text(
-        "Check Interval (in seconds, default 60): ",
-        default=str(config.get("monitor", {}).get("check_interval", 60)),
-        validate=lambda x: x.isdigit() and int(x) > 0,
-    ).ask()
-
     allow_webvpn = questionary.confirm(
         "Allow using WebVPN for authentication if direct login fails?",
         default=config.get("config", {}).get("allow_webvpn", True),
@@ -89,6 +79,12 @@ def init_config():
         validate=lambda x: x.isdigit() and int(x) > 0,
     ).ask()
 
+    monitor_interval = questionary.text(
+        "Monitor Interval (in seconds, default 60): ",
+        default=str(config.get("config", {}).get("monitor_interval", 60)),
+        validate=lambda x: x.isdigit() and int(x) > 0,
+    ).ask()
+
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
 
     try:
@@ -96,10 +92,10 @@ def init_config():
             "account": account,
             "secret": {"service_name": service_name},
             "devices": devices,
-            "monitor": {"check_interval": int(check_interval)},
             "config": {
                 "allow_webvpn": allow_webvpn,
                 "requests_timeout": int(requests_timeout),
+                "monitor_interval": int(monitor_interval),
             },
         }
 

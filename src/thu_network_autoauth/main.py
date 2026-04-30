@@ -63,7 +63,13 @@ def main():
     logger.info(f"{FILE_TAG} Account: {config['account']}")
     logger.info(f"{FILE_TAG} Monitoring IPs: {', '.join(config['devices'])}")
     logger.info(
-        f"{FILE_TAG} Check interval: {config['monitor']['check_interval']} seconds"
+        f"{FILE_TAG} Allow WebVPN: {'Yes' if config['config']['allow_webvpn'] else 'No'}"
+    )
+    logger.info(
+        f"{FILE_TAG} Requests Timeout: {config['config']['requests_timeout']} seconds"
+    )
+    logger.info(
+        f"{FILE_TAG} Check interval: {config['config']['monitor_interval']} seconds"
     )
 
     while True:
@@ -103,7 +109,7 @@ def main():
                 f"{FILE_TAG} Skipping this cycle due to unexpected error: {e}"
             )
 
-        time.sleep(config["monitor"]["check_interval"])
+        time.sleep(config["config"]["monitor_interval"])
 
 
 if __name__ == "__main__":

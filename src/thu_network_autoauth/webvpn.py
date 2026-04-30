@@ -66,7 +66,7 @@ def get_available_location(url: str) -> str:
 
     session = get_session()
 
-    if time.time() - last_check[location] < load_config()["monitor"]["check_interval"]:
+    if time.time() - last_check[location] < load_config()["config"]["monitor_interval"]:
         return last_location[location]
 
     last_check[location] = time.time()
