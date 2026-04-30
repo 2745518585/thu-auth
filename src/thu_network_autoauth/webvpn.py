@@ -47,7 +47,7 @@ def get_webvpn_url(target_location: str) -> str:
         f"{FILE_TAG} Encoded Location {target_location} for webvpn: {encoded_location}"
     )
 
-    return f"https://webvpn.tsinghua.edu.cn/https/{encoded_location}"
+    return f"https://webvpn.tsinghua.edu.cn/https/{encoded_location}/"
 
 
 last_location: dict[str, str] = {}
@@ -55,6 +55,8 @@ last_check: dict[str, float] = {}
 
 
 def get_available_location(url: str) -> str:
+    if not url.endswith("/"):
+        url += "/"
     location = urlparse(url).netloc
 
     global last_check, last_location
