@@ -34,11 +34,17 @@ config_schema = {
 
 
 def init_config():
-    account = questionary.text("THU Account: ", validate=lambda x: len(x) > 0).ask()
+    config = load_config()
+
+    account = questionary.text(
+        "THU Account: ",
+        default=config.get("account", ""),
+        validate=lambda x: len(x) > 0,
+    ).ask()
 
     service_name = questionary.text(
         "Keyring Service Name (for storing password): ",
-        default="thu-network-autoauth",
+        default=config.get("password", {}).get("service_name", "thu-network-autoauth"),
         validate=lambda x: len(x) > 0,
     ).ask()
 
@@ -46,6 +52,9 @@ def init_config():
     while True:
         device = questionary.text(
             "Device IPv4 (leave empty to finish): ",
+            default=(
+                config.get("devices", [])[len(devices)] if len(config.get("devices", [])) > len(devices) else ""
+            ),
             validate=lambda x: len(x) == 0
             or (
                 len(x.split(".")) == 4
@@ -58,13 +67,13 @@ def init_config():
 
     check_interval = questionary.text(
         "Check Interval (in seconds, default 60): ",
-        default="60",
+        default=str(config.get("monitor", {}).get("check_interval", 60)),
         validate=lambda x: x.isdigit() and int(x) > 0,
     ).ask()
 
     finger_print = questionary.text(
         "Finger Print: ",
-        default="",
+        default=config.get("environment", {}).get("finger_print", ""),
         validate=lambda x: len(x) == 32,
     ).ask()
 
