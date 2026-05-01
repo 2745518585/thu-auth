@@ -10,12 +10,18 @@ from Crypto.Cipher import PKCS1_v1_5
 
 from .config import load_config
 from .ocr import run_ocr
-from .passwd import get_password
+from .secret import get_password
+from .session import get_session
+from .webvpn import get_available_location
 from .log import logger
+
+FILE_TAG = "[usereg_api]"
+
+DEFAULT_LOCATION = "https://usereg.tsinghua.edu.cn/"
 
 
 def check_login(session: requests.Session) -> bool:
-    url = "https://usereg.tsinghua.edu.cn/home"
+    url = urljoin(get_available_location(DEFAULT_LOCATION), "home")
     resp = session.get(url, allow_redirects=False)
     if resp.status_code == 200:
         return True
@@ -23,14 +29,12 @@ def check_login(session: requests.Session) -> bool:
         return False
 
 
-def login() -> requests.Session:
+def login() -> None:
 
     config = load_config()
+    session = get_session()
 
-    global session
-    session = requests.Session()
-
-    def get_public_key(session, base_url):
+    def get_public_key(session: requests.Session, base_url: str):
         resp = session.get(base_url)
         resp.raise_for_status()
         m = re.search(
@@ -39,29 +43,29 @@ def login() -> requests.Session:
             re.S,
         )
         if not m:
-            raise Exception("未找到公钥")
+            raise Exception(f"{FILE_TAG} Public key not found on login page")
         return m.group(1)
 
-    def get_captcha_url(session, base_url):
+    def get_captcha_url(session: requests.Session, base_url: str):
         resp = session.get(base_url)
         resp.raise_for_status()
         m = re.search(r'<img id="loginform-verifycode-image" src="([^"]+)"', resp.text)
         if not m:
-            raise Exception("未找到验证码图片 URL")
+            raise Exception(f"{FILE_TAG} Captcha image URL not found on login page")
         return urljoin(base_url, m.group(1))
 
-    def rsa_encrypt(password, public_key_str):
+    def rsa_encrypt(password: str, public_key_str: str):
         key = RSA.importKey(public_key_str)
         cipher = PKCS1_v1_5.new(key)
         encrypted = cipher.encrypt(password.encode("utf-8"))
         return base64.b64encode(encrypted).decode()
 
     if check_login(session):
-        return session
+        return
 
-    logger.info("Start logging in to thu network self-service system")
+    logger.info(f"{FILE_TAG} Start logging in to thu network self-service system")
 
-    base_url = "https://usereg.tsinghua.edu.cn/login"
+    base_url = urljoin(get_available_location(DEFAULT_LOCATION), "login")
 
     # 获取公钥
     public_key = get_public_key(session, base_url)
@@ -76,7 +80,7 @@ def login() -> requests.Session:
     username = config["account"]
     password = get_password()
     if not password:
-        raise Exception("未找到密码")
+        raise Exception(f"{FILE_TAG} Password not available from keyring")
     encrypted_pwd = rsa_encrypt(password, public_key)
 
     # 获取csrf参数和token
@@ -85,7 +89,7 @@ def login() -> requests.Session:
     csrf_param = re.search(r'<meta name="csrf-param" content="([^"]+)"', resp.text)
     csrf_token = re.search(r'<meta name="csrf-token" content="([^"]+)"', resp.text)
     if not csrf_param or not csrf_token:
-        raise Exception("未找到 CSRF 参数或令牌")
+        raise Exception(f"{FILE_TAG} CSRF parameter or token not found")
     csrf_param = csrf_param.group(1)
     csrf_token = csrf_token.group(1)
 
@@ -102,17 +106,18 @@ def login() -> requests.Session:
     resp.raise_for_status()
 
     if check_login(session):
-        logger.info("Login successful")
-        return session
+        logger.info(f"{FILE_TAG} Login successful")
+        return
 
-    raise Exception("Login failed")
+    raise Exception(f"{FILE_TAG} Login failed")
 
 
 def get_online_ips() -> List[str]:
-    url = "https://usereg.tsinghua.edu.cn/home"
-    session = login()
+    login()
+    session = get_session()
+    url = urljoin(get_available_location(DEFAULT_LOCATION), "home")
 
-    logger.info("Getting online IPv4 address list")
+    logger.info(f"{FILE_TAG} Getting online IPv4 address list")
 
     # 请求页面
     resp = session.get(url)
@@ -124,20 +129,21 @@ def get_online_ips() -> List[str]:
     # 找到 .query-online 区块
     container = soup.select_one(".query-online")
     if not container:
-        raise Exception("未找到在线信息区域 (.query-online)")
+        raise Exception(f"{FILE_TAG} Online info section (.query-online) not found")
 
     # 提取 IP 列（data-col-seq="1"）
     ips = [td.get_text(strip=True) for td in container.select('td[data-col-seq="1"]')]
 
-    logger.info(f"Online IPv4 address list: {ips}")
+    logger.info(f"{FILE_TAG} Online IPv4 address list: {ips}")
     return ips
 
 
 def send_certification(ip: str) -> bool:
-    session = login()
-    url = "https://usereg.tsinghua.edu.cn/certification"
+    login()
+    session = get_session()
+    url = urljoin(get_available_location(DEFAULT_LOCATION), "certification")
 
-    logger.info(f"Sending certification request, IP: {ip}")
+    logger.info(f"{FILE_TAG} Sending certification request, IP: {ip}")
 
     # 获取页面，提取 csrf
     resp = session.get(url)
@@ -146,14 +152,14 @@ def send_certification(ip: str) -> bool:
     csrf_param = soup.find("meta", attrs={"name": "csrf-param"})
     csrf_token = soup.find("meta", attrs={"name": "csrf-token"})
     if not csrf_param or not csrf_token:
-        raise Exception("未找到 CSRF 参数或令牌")
+        raise Exception(f"{FILE_TAG} CSRF parameter or token not found")
     csrf_param = str(csrf_param["content"])
     csrf_token = str(csrf_token["content"])
 
     # 密码
     password = get_password()
     if not password:
-        raise Exception("未找到密码")
+        raise Exception(f"{FILE_TAG} Password not available from keyring")
 
     # 构造表单
     data = {
@@ -173,7 +179,10 @@ def send_certification(ip: str) -> bool:
     if error_div:
         # 提取错误文本
         error_text = error_div.get_text(strip=True).replace("x", "", 1).strip()
-        raise Exception(error_text)
+        logger.warning(
+            f"{FILE_TAG} Certification request failed, IP: {ip}, Error: {error_text}"
+        )
+        return False
 
-    logger.info(f"Certification request successful, IP: {ip}")
+    logger.info(f"{FILE_TAG} Certification request successful, IP: {ip}")
     return True
