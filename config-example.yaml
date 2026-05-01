@@ -8,6 +8,8 @@ devices:
   - 192.168.1.101
 
 config:
-  allow_webvpn: true
   requests_timeout: 2
   monitor_interval: 60
+  allow_webvpn: true
+  allow_force_attempt: false
+  force_attempt_interval: 600

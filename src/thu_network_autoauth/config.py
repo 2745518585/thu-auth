@@ -23,11 +23,13 @@ config_schema = {
         "config": {
             "type": "object",
             "properties": {
-                "allow_webvpn": {"type": "boolean"},
                 "requests_timeout": {"type": "integer"},
                 "monitor_interval": {"type": "integer"},
+                "allow_webvpn": {"type": "boolean"},
+                "allow_force_attempt": {"type": "boolean"},
+                "force_attempt_interval": {"type": "integer"},
             },
-            "required": ["allow_webvpn", "requests_timeout", "monitor_interval"],
+            "required": ["requests_timeout", "monitor_interval", "allow_webvpn", "allow_force_attempt", "force_attempt_interval"],
         },
     },
     "required": ["account", "secret", "devices", "config"],
@@ -71,22 +73,33 @@ def init_config():
             break
         devices.append(device)
 
-    allow_webvpn = questionary.confirm(
-        "Allow using WebVPN for authentication if direct login fails?",
-        default=config.get("config", {}).get("allow_webvpn", True),
-    ).ask()
-
     requests_timeout = questionary.text(
-        "Requests Timeout (in seconds, default 2): ",
+        "Requests Timeout (in seconds): ",
         default=str(config.get("config", {}).get("requests_timeout", 2)),
         validate=lambda x: x.isdigit() and int(x) > 0,
     ).ask()
 
     monitor_interval = questionary.text(
-        "Monitor Interval (in seconds, default 60): ",
+        "Monitor Interval (in seconds): ",
         default=str(config.get("config", {}).get("monitor_interval", 60)),
         validate=lambda x: x.isdigit() and int(x) > 0,
     ).ask()
+
+    allow_webvpn = questionary.confirm(
+        "Allow using WebVPN for authentication if direct login fails?",
+        default=config.get("config", {}).get("allow_webvpn", True),
+    ).ask()
+
+    allow_force_attempt = questionary.confirm(
+        "Allow force attempt to certificate even if the device is not accessible by ping?",
+        default=config.get("config", {}).get("allow_force_attempt", False),
+    ).ask()
+
+    force_attempt_interval = questionary.text(
+        "Force Attempt Interval (in seconds): ",
+        default=str(config.get("config", {}).get("force_attempt_interval", 600)),
+        validate=lambda x: x.isdigit() and int(x) > 0,
+    ).ask() if allow_force_attempt else "600"
 
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
 
@@ -96,9 +109,11 @@ def init_config():
             "secret": {"service_name": service_name},
             "devices": devices,
             "config": {
-                "allow_webvpn": allow_webvpn,
                 "requests_timeout": int(requests_timeout),
                 "monitor_interval": int(monitor_interval),
+                "allow_webvpn": allow_webvpn,
+                "allow_force_attempt": allow_force_attempt,
+                "force_attempt_interval": int(force_attempt_interval),
             },
         }
 

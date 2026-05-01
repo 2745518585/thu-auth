@@ -29,19 +29,21 @@ thu-auth
 
 配置文件和日志文件地址将在运行后打印到控制台，其中配置文件格式如下：
 ```yaml
-account: username           # 清华大学用户电子身份用户名
+account: username                   # 清华大学用户电子身份用户名
 
 password:
-  service_name: thu-auth    # 密码在系统安全存储中的服务名称
+  service_name: thu-auth            # 密码在系统安全存储中的服务名称
 
 devices:
-  - 192.168.1.100           # 需要监控的 IP 地址列表
+  - 192.168.1.100                   # 需要监控的 IP 地址列表
   - 192.168.1.101
 
 config:
-  allow_webvpn: true        # 是否允许通过 WebVPN 进行认证（适用于设备在校外等无法直接访问自服务平台的情况）
-  requests_timeout: 2       # 进行网络请求时的超时时间，单位为秒
-  monitor_interval: 60      # 两次扫描之间的时间间隔，单位为秒
+  requests_timeout: 2               # 进行网络请求时的超时时间，单位为秒
+  monitor_interval: 60              # 两次扫描之间的时间间隔，单位为秒
+  allow_webvpn: true                # 是否允许通过 WebVPN 进行认证（适用于设备在校外等无法直接访问自服务平台的情况）
+  allow_force_attempt: true         # 是否允许在设备无法通过 ping 检测时强制尝试认证（适用于认证设备与目标设备不在同一网段或认证设备位于校外的情况）
+  force_attempt_interval: 600       # 强制尝试认证的时间间隔，单位为秒
 ```
 
 ### WebVPN

@@ -63,14 +63,23 @@ def main():
     logger.info(f"{FILE_TAG} Account: {config['account']}")
     logger.info(f"{FILE_TAG} Monitoring IPs: {', '.join(config['devices'])}")
     logger.info(
-        f"{FILE_TAG} Allow WebVPN: {'Yes' if config['config']['allow_webvpn'] else 'No'}"
-    )
-    logger.info(
         f"{FILE_TAG} Requests Timeout: {config['config']['requests_timeout']} seconds"
     )
     logger.info(
         f"{FILE_TAG} Check interval: {config['config']['monitor_interval']} seconds"
     )
+    logger.info(
+        f"{FILE_TAG} Allow WebVPN: {'Yes' if config['config']['allow_webvpn'] else 'No'}"
+    )
+    logger.info(
+        f"{FILE_TAG} Force attempt: {'Yes' if config['config']['allow_force_attempt'] else 'No'}"
+    )
+    if config["config"]["allow_force_attempt"]:
+        logger.info(
+            f"{FILE_TAG} Force attempt interval: {config['config']['force_attempt_interval']} seconds"
+        )
+
+    last_force_attempt_time = 0
 
     while True:
 
@@ -80,10 +89,17 @@ def main():
             logger.info(
                 f"{FILE_TAG} Currently online IPs: {', '.join(ips) if ips else 'None'}"
             )
+            force_attempt = False
+            if config["config"]["allow_force_attempt"] and time.time() - last_force_attempt_time >= config["config"]["force_attempt_interval"]:
+                logger.info(
+                    f"{FILE_TAG} Force attempt interval reached, allowing certification attempt even if the device is not accessible by ping"
+                )
+                force_attempt = True
+                last_force_attempt_time = time.time()
 
             for ip in config["devices"]:
 
-                if not check_ip_available(ip):
+                if not check_ip_available(ip) and not force_attempt:
                     logger.info(f"{FILE_TAG} IP {ip} is not available, skipping...")
                     continue
 
