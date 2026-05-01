@@ -179,7 +179,9 @@ def send_certification(ip: str) -> bool:
     if error_div:
         # 提取错误文本
         error_text = error_div.get_text(strip=True).replace("x", "", 1).strip()
-        logger.warning(f"{FILE_TAG} Certification request failed, IP: {ip}, Error: {error_text}")
+        logger.warning(
+            f"{FILE_TAG} Certification request failed, IP: {ip}, Error: {error_text}"
+        )
         return False
 
     logger.info(f"{FILE_TAG} Certification request successful, IP: {ip}")

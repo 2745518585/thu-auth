@@ -29,7 +29,13 @@ config_schema = {
                 "allow_force_attempt": {"type": "boolean"},
                 "force_attempt_interval": {"type": "integer"},
             },
-            "required": ["requests_timeout", "monitor_interval", "allow_webvpn", "allow_force_attempt", "force_attempt_interval"],
+            "required": [
+                "requests_timeout",
+                "monitor_interval",
+                "allow_webvpn",
+                "allow_force_attempt",
+                "force_attempt_interval",
+            ],
         },
     },
     "required": ["account", "secret", "devices", "config"],
@@ -95,11 +101,15 @@ def init_config():
         default=config.get("config", {}).get("allow_force_attempt", False),
     ).ask()
 
-    force_attempt_interval = questionary.text(
-        "Force Attempt Interval (in seconds): ",
-        default=str(config.get("config", {}).get("force_attempt_interval", 600)),
-        validate=lambda x: x.isdigit() and int(x) > 0,
-    ).ask() if allow_force_attempt else "600"
+    force_attempt_interval = (
+        questionary.text(
+            "Force Attempt Interval (in seconds): ",
+            default=str(config.get("config", {}).get("force_attempt_interval", 600)),
+            validate=lambda x: x.isdigit() and int(x) > 0,
+        ).ask()
+        if allow_force_attempt
+        else "600"
+    )
 
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
 

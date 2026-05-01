@@ -90,7 +90,11 @@ def main():
                 f"{FILE_TAG} Currently online IPs: {', '.join(ips) if ips else 'None'}"
             )
             force_attempt = False
-            if config["config"]["allow_force_attempt"] and time.time() - last_force_attempt_time >= config["config"]["force_attempt_interval"]:
+            if (
+                config["config"]["allow_force_attempt"]
+                and time.time() - last_force_attempt_time
+                >= config["config"]["force_attempt_interval"]
+            ):
                 logger.info(
                     f"{FILE_TAG} Force attempt interval reached, allowing certification attempt even if the device is not accessible by ping"
                 )
