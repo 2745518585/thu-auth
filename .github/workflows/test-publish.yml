@@ -28,6 +28,10 @@ jobs:
       - name: Install build tool
         run: pip install build
 
+      - name: Set dev version
+        run: |
+          sed -i 's/\(version = "[^"]*\)\(\.dev[0-9]*\)\?"/\1.dev'${GITHUB_RUN_NUMBER}'"/' pyproject.toml
+
       - name: Build package
         run: python -m build
 
