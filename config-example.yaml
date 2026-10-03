@@ -1,6 +1,6 @@
 account: username
 
-password:
+secret:
   service_name: thu-auth
 
 devices:
