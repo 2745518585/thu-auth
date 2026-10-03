@@ -1,5 +1,6 @@
-import requests
 import time
+
+import requests
 
 from .config import load_config
 

@@ -1,13 +1,13 @@
 import time
-import requests
 from urllib.parse import urlparse
 
+import requests
 from Crypto.Cipher import AES
 
-from .session import get_session
+from . import id_api
 from .config import load_config
 from .log import logger
-from . import id_api
+from .session import get_session
 
 FILE_TAG = "[webvpn]"
 

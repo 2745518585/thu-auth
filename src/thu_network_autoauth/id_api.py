@@ -1,14 +1,14 @@
 import re
-import requests
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+import requests
+from bs4 import BeautifulSoup
 from gmssl import sm2
 
 from .config import load_config
-from .secret import get_password, get_fingerprint
-from .session import get_session
 from .log import logger
+from .secret import get_fingerprint, get_password
+from .session import get_session
 
 FILE_TAG = "[id_api]"
 

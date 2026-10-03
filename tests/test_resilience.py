@@ -1,14 +1,14 @@
 import copy
 import logging
-from pathlib import Path
+import runpy
 import sys
 import tempfile
 import unittest
-import runpy
-import yaml
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import requests
+import yaml
 from jsonschema import ValidationError, validate
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -16,15 +16,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 _logs = tempfile.TemporaryDirectory()
 with patch("platformdirs.user_log_dir", return_value=_logs.name):
     from thu_network_autoauth import (
+        config,
+        id_api,
+        log,
         main,
+        ocr,
+        secret,
         session,
         usereg_api,
         webvpn,
-        config,
-        ocr,
-        secret,
-        id_api,
-        log,
     )
 
 logging.getLogger("thu-network-autoauth").setLevel(logging.CRITICAL)

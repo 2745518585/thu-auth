@@ -1,5 +1,6 @@
 import keyring
 import questionary
+
 from .config import load_config
 from .log import logger
 

@@ -1,18 +1,18 @@
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from typing import List
-import requests
 import base64
+from typing import List
+from urllib.parse import urljoin
 
-from Crypto.PublicKey import RSA
+import requests
+from bs4 import BeautifulSoup
 from Crypto.Cipher import PKCS1_v1_5
+from Crypto.PublicKey import RSA
 
 from .config import load_config
-from .ocr import run_ocr, CaptchaRecognitionError
+from .log import logger
+from .ocr import CaptchaRecognitionError, run_ocr
 from .secret import get_password
 from .session import get_session
 from .webvpn import get_available_location
-from .log import logger
 
 FILE_TAG = "[usereg_api]"
 

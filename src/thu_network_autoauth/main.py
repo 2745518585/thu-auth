@@ -1,10 +1,11 @@
-import time
 import argparse
-from importlib.metadata import version, PackageNotFoundError
-from .log import logger
-from .monitor import check_ip_available
+import time
+from importlib.metadata import PackageNotFoundError, version
+
 from . import config as Config
 from . import secret, usereg_api
+from .log import logger
+from .monitor import check_ip_available
 from .session import reset_session
 from .webvpn import reset_location_cache
 

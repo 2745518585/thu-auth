@@ -2,6 +2,7 @@ import logging
 import os
 import re
 from logging.handlers import RotatingFileHandler
+
 from platformdirs import user_log_dir
 
 FILE_TAG = "[log]"

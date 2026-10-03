@@ -1,11 +1,13 @@
-import os
 import copy
+import os
 import tempfile
-from ipaddress import IPv4Address, AddressValueError
-import yaml
+from ipaddress import AddressValueError, IPv4Address
+
 import questionary
-from platformdirs import user_config_dir
+import yaml
 from jsonschema import Draft202012Validator, ValidationError
+from platformdirs import user_config_dir
+
 from .log import logger
 
 FILE_TAG = "[config]"

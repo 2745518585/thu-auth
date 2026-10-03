@@ -80,11 +80,11 @@ thu-auth --fingerprint
 
 ```bash
 python -m pip install -e .
-python -m pip install ruff pyright build
+python -m pip install ruff==0.16.10 pyright==1.1.414 build
 python -m unittest discover -s tests -v
-ruff check src tests entry.py
-ruff format --check src tests entry.py
-pyright
+python -m ruff check src tests entry.py
+python -m ruff format --check src tests entry.py
+python -m pyright
 python -m build
 ```
 

@@ -1,8 +1,9 @@
-import requests
 import re
 
-from .session import get_session
+import requests
+
 from .log import logger
+from .session import get_session
 
 _ocr = None
 
