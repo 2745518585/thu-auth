@@ -1,5 +1,6 @@
 import keyring
 import questionary
+
 from .config import load_config
 from .log import logger
 
@@ -12,10 +13,9 @@ def get_secret_storage_key(key: str) -> str:
 
 
 def get_password():
-
     config = load_config()
     password = keyring.get_password(
-        config["secret"]["service_name"], get_secret_storage_key("password")
+        config["secret"]["service_name"], f"{config['account']}:password"
     )
 
     if not password:
@@ -27,11 +27,13 @@ def get_password():
 
 
 def set_password():
-
     config = load_config()
 
     logger.info(f"{FILE_TAG} Updating password...")
     new_password = questionary.password("Enter Password: ").ask()
+    if not new_password:
+        logger.info(f"{FILE_TAG} Password update cancelled; stored password unchanged")
+        return
     reinput_password = questionary.password("Re-enter Password: ").ask()
 
     if new_password != reinput_password:
@@ -40,16 +42,15 @@ def set_password():
 
     keyring.set_password(
         config["secret"]["service_name"],
-        get_secret_storage_key("password"),
+        f"{config['account']}:password",
         new_password,
     )
 
 
 def get_fingerprint() -> str:
-
     config = load_config()
     fingerprint = keyring.get_password(
-        config["secret"]["service_name"], get_secret_storage_key("fingerprint")
+        config["secret"]["service_name"], f"{config['account']}:fingerprint"
     )
 
     if not fingerprint:
@@ -61,14 +62,18 @@ def get_fingerprint() -> str:
 
 
 def set_fingerprint():
-
     config = load_config()
 
     logger.info(f"{FILE_TAG} Updating Fingerprint ...")
-    fingerprint = questionary.text(f"New value for Fingerprint: ").ask()
+    fingerprint = questionary.text("New value for Fingerprint: ").ask()
+    if not fingerprint or not fingerprint.strip():
+        logger.info(
+            f"{FILE_TAG} Fingerprint update cancelled; stored fingerprint unchanged"
+        )
+        return
 
     keyring.set_password(
         config["secret"]["service_name"],
-        get_secret_storage_key("fingerprint"),
+        f"{config['account']}:fingerprint",
         fingerprint,
     )

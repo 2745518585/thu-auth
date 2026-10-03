@@ -23,14 +23,39 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Install build tool
         run: pip install build
 
       - name: Set dev version
         run: |
-          sed -i 's/\(version = "[^"]*\)\(\.dev[0-9]*\)\?"/\1.dev'${GITHUB_RUN_NUMBER}'"/' pyproject.toml
+          python - <<'PY'
+          import os
+          import re
+          import tomllib
+          from pathlib import Path
+
+          project = Path('pyproject.toml')
+          source = project.read_text(encoding='utf-8')
+          base_version = tomllib.loads(source)['project']['version']
+          version = re.sub(r'\.dev\d+$', '', base_version) + '.dev' + os.environ['GITHUB_RUN_NUMBER']
+          project.write_text(source.replace(f'version = "{base_version}"', f'version = "{version}"', 1), encoding='utf-8')
+          lock = Path('uv.lock')
+          old = f'name = "thu-network-autoauth"\nversion = "{base_version}"'
+          new = f'name = "thu-network-autoauth"\nversion = "{version}"'
+          locked = lock.read_text(encoding='utf-8')
+          if locked.count(old) != 1:
+              raise SystemExit('Could not locate the project version in uv.lock')
+          lock.write_text(locked.replace(old, new, 1), encoding='utf-8')
+          print(f'Test release version: {version}')
+          PY
+
+      - name: Check package before publishing
+        run: |
+          python -m pip install .
+          python -m unittest discover -s tests -v
+          thu-auth --version
 
       - name: Build package
         run: python -m build

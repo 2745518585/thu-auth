@@ -1,13 +1,13 @@
 import time
-import requests
 from urllib.parse import urlparse
 
+import requests
 from Crypto.Cipher import AES
 
-from .session import get_session
+from . import id_api
 from .config import load_config
 from .log import logger
-from . import id_api
+from .session import get_session
 
 FILE_TAG = "[webvpn]"
 
@@ -19,14 +19,22 @@ def get_wrdvpn_keys(session: requests.Session):
     resp.raise_for_status()
 
     data = resp.json()
+    if not isinstance(data, dict):
+        raise RuntimeError(f"{FILE_TAG} Invalid WebVPN user info response")
 
     key = data.get("wrdvpnKey")
     iv = data.get("wrdvpnIV")
 
-    if not key or not iv:
-        raise Exception(f"{FILE_TAG} Missing wrdvpnKey or wrdvpnIV in response: {data}")
+    if not isinstance(key, str) or not isinstance(iv, str):
+        raise RuntimeError(
+            f"{FILE_TAG} Missing or invalid WebVPN encryption parameters"
+        )
 
-    return key.encode("utf-8"), iv.encode("utf-8")
+    key_bytes, iv_bytes = key.encode("utf-8"), iv.encode("utf-8")
+    if len(key_bytes) not in {16, 24, 32} or len(iv_bytes) != 16:
+        raise RuntimeError(f"{FILE_TAG} Invalid WebVPN encryption parameter lengths")
+
+    return key_bytes, iv_bytes
 
 
 def wengine_encode(url: str) -> str:
@@ -38,8 +46,6 @@ def wengine_encode(url: str) -> str:
 
 
 def get_webvpn_url(target_location: str) -> str:
-
-    id_api.login()
     id_api.auth_page("https://webvpn.tsinghua.edu.cn/")
 
     encoded_location = wengine_encode(target_location)
@@ -54,6 +60,11 @@ last_location: dict[str, str] = {}
 last_check: dict[str, float] = {}
 
 
+def reset_location_cache():
+    last_location.clear()
+    last_check.clear()
+
+
 def get_available_location(url: str) -> str:
     if not url.endswith("/"):
         url += "/"
@@ -61,33 +72,33 @@ def get_available_location(url: str) -> str:
 
     global last_check, last_location
 
-    if last_check.get(location) is None:
-        last_check[location] = 0
-    if last_location.get(location) is None:
-        last_location[location] = url
-
     session = get_session()
+    config = load_config()["config"]
 
-    if time.time() - last_check[location] < load_config()["config"]["monitor_interval"]:
-        return last_location[location]
-
-    last_check[location] = time.time()
-
-    if not load_config()["config"]["allow_webvpn"]:
-        logger.info(
-            f"{FILE_TAG} WebVPN usage is disabled by configuration, using default URL: {url}"
-        )
+    if not config["allow_webvpn"]:
+        last_location[location] = url
+        last_check.pop(location, None)
         return url
+
+    if (
+        location in last_check
+        and time.monotonic() - last_check[location] < config["monitor_interval"]
+    ):
+        return last_location[location]
 
     logger.info(f"{FILE_TAG} Checking if default URL is accessible")
 
     try:
         resp = session.get(url, timeout=5)
-        last_location[location] = url
-        logger.info(f"{FILE_TAG} Using default URL: {last_location[location]}")
-    except Exception as e:
+        resp.raise_for_status()
+        selected = url
+    except requests.RequestException:
         logger.info(f"{FILE_TAG} Default URL not accessible, trying webvpn")
-        last_location[location] = get_webvpn_url(location)
-        logger.info(f"{FILE_TAG} Using webvpn URL: {last_location[location]}")
+        selected = get_webvpn_url(location)
+
+    # Cache only successful discovery, so a failed VPN login cannot poison it.
+    last_location[location] = selected
+    last_check[location] = time.monotonic()
+    logger.info(f"{FILE_TAG} Using URL: {selected}")
 
     return last_location[location]

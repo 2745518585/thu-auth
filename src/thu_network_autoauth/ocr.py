@@ -1,17 +1,30 @@
-import requests
-import ddddocr
 import re
 
-from .session import get_session
-from .log import logger
+import requests
 
-_ocr = ddddocr.DdddOcr(show_ad=False)
+from .log import logger
+from .session import get_session
+
+_ocr = None
+
+
+class CaptchaRecognitionError(RuntimeError):
+    pass
+
+
+def get_ocr():
+    global _ocr
+    if _ocr is None:
+        import ddddocr
+
+        _ocr = ddddocr.DdddOcr(show_ad=False)
+    return _ocr
+
 
 FILE_TAG = "[ocr]"
 
 
 def run_ocr(img_url: str, retries: int = 3, timeout: float = 5.0) -> str:
-
     session = get_session()
 
     for attempt in range(retries):
@@ -21,7 +34,7 @@ def run_ocr(img_url: str, retries: int = 3, timeout: float = 5.0) -> str:
             resp.raise_for_status()
 
             # OCR 识别
-            result = _ocr.classification(resp.content)
+            result = get_ocr().classification(resp.content)
 
             # 类型检查
             if not isinstance(result, str):
@@ -47,6 +60,6 @@ def run_ocr(img_url: str, retries: int = 3, timeout: float = 5.0) -> str:
     logger.error(
         f"{FILE_TAG} Failed to recognize captcha {img_url} after maximum retries"
     )
-    raise Exception(
+    raise CaptchaRecognitionError(
         f"{FILE_TAG} Error occurred while recognizing captcha: Failed to recognize captcha after maximum retries"
     )
