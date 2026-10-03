@@ -1,9 +1,9 @@
 name: Publish to Test-PyPI
 
 on:
-  push:
-    tags:
-      - 'test-v*'
+  pull_request:
+    branches:
+      - master
 
 permissions:
   id-token: write
@@ -28,7 +28,7 @@ jobs:
       - name: Install build tool
         run: pip install build
 
-      - name: Set version from test tag
+      - name: Set dev version
         run: |
           python - <<'PY'
           import os
@@ -36,16 +36,10 @@ jobs:
           import tomllib
           from pathlib import Path
 
-          tag = os.environ['GITHUB_REF_NAME']
-          match = re.fullmatch(r'test-v(\d+\.\d+\.\d+)\.dev(\d+)', tag)
-          if match is None:
-              raise SystemExit('Expected test-vX.Y.Z.devN tag')
-          version = tag.removeprefix('test-v')
           project = Path('pyproject.toml')
           source = project.read_text(encoding='utf-8')
           base_version = tomllib.loads(source)['project']['version']
-          if match.group(1) != base_version:
-              raise SystemExit('Test tag must match the project base version')
+          version = re.sub(r'\.dev\d+$', '', base_version) + '.dev' + os.environ['GITHUB_RUN_NUMBER']
           project.write_text(source.replace(f'version = "{base_version}"', f'version = "{version}"', 1), encoding='utf-8')
           lock = Path('uv.lock')
           old = f'name = "thu-network-autoauth"\nversion = "{base_version}"'

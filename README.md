@@ -92,7 +92,7 @@ python -m build
 
 如需生成独立可执行文件，可额外安装 PyInstaller 后运行 `pyinstaller thu-auth.spec`，该打包配置会包含验证码识别模型文件。
 
-TestPyPI 通过 `test-vX.Y.Z.devN` 标签发布，例如 `test-v0.2.1.dev1`。标签的基础版本必须与项目版本相同；工作流会将构建版本设为 `0.2.1.dev1`，安装并测试后再上传至 TestPyPI。创建或更新 PR 不自动发布测试包。
+TestPyPI 在创建或更新目标为 `master` 的 PR 时发布。工作流自动添加 `.dev<运行编号>`，例如 `0.2.1.dev5`，安装并测试后再上传至 TestPyPI；源码中的正式版本号保持不变。
 
 ## 许可证
 
