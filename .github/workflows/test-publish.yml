@@ -1,9 +1,9 @@
 name: Publish to Test-PyPI
 
 on:
-  pull_request:
-    branches:
-      - master
+  push:
+    tags:
+      - 'test-v*'
 
 permissions:
   id-token: write
@@ -23,14 +23,45 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Install build tool
         run: pip install build
 
-      - name: Set dev version
+      - name: Set version from test tag
         run: |
-          sed -i 's/\(version = "[^"]*\)\(\.dev[0-9]*\)\?"/\1.dev'${GITHUB_RUN_NUMBER}'"/' pyproject.toml
+          python - <<'PY'
+          import os
+          import re
+          import tomllib
+          from pathlib import Path
+
+          tag = os.environ['GITHUB_REF_NAME']
+          match = re.fullmatch(r'test-v(\d+\.\d+\.\d+)\.dev(\d+)', tag)
+          if match is None:
+              raise SystemExit('Expected test-vX.Y.Z.devN tag')
+          version = tag.removeprefix('test-v')
+          project = Path('pyproject.toml')
+          source = project.read_text(encoding='utf-8')
+          base_version = tomllib.loads(source)['project']['version']
+          if match.group(1) != base_version:
+              raise SystemExit('Test tag must match the project base version')
+          project.write_text(source.replace(f'version = "{base_version}"', f'version = "{version}"', 1), encoding='utf-8')
+          lock = Path('uv.lock')
+          old = f'name = "thu-network-autoauth"\nversion = "{base_version}"'
+          new = f'name = "thu-network-autoauth"\nversion = "{version}"'
+          locked = lock.read_text(encoding='utf-8')
+          if locked.count(old) != 1:
+              raise SystemExit('Could not locate the project version in uv.lock')
+          lock.write_text(locked.replace(old, new, 1), encoding='utf-8')
+          print(f'Test release version: {version}')
+          PY
+
+      - name: Check package before publishing
+        run: |
+          python -m pip install .
+          python -m unittest discover -s tests -v
+          thu-auth --version
 
       - name: Build package
         run: python -m build
