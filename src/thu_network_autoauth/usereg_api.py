@@ -3,13 +3,12 @@ from bs4 import BeautifulSoup
 from typing import List
 import requests
 import base64
-import re
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 
 from .config import load_config
-from .ocr import run_ocr
+from .ocr import run_ocr, CaptchaRecognitionError
 from .secret import get_password
 from .session import get_session
 from .webvpn import get_available_location
@@ -23,36 +22,21 @@ DEFAULT_LOCATION = "https://usereg.tsinghua.edu.cn/"
 def check_login(session: requests.Session) -> bool:
     url = urljoin(get_available_location(DEFAULT_LOCATION), "home")
     resp = session.get(url, allow_redirects=False)
+    if resp.status_code == 401:
+        return False
+    resp.raise_for_status()
     if resp.status_code == 200:
-        return True
+        return (
+            BeautifulSoup(resp.text, "html.parser").select_one(".query-online")
+            is not None
+        )
     else:
         return False
 
 
 def login() -> None:
-
     config = load_config()
     session = get_session()
-
-    def get_public_key(session: requests.Session, base_url: str):
-        resp = session.get(base_url)
-        resp.raise_for_status()
-        m = re.search(
-            r'id="public" value="(-----BEGIN PUBLIC KEY-----.+?-----END PUBLIC KEY-----)"',
-            resp.text,
-            re.S,
-        )
-        if not m:
-            raise Exception(f"{FILE_TAG} Public key not found on login page")
-        return m.group(1)
-
-    def get_captcha_url(session: requests.Session, base_url: str):
-        resp = session.get(base_url)
-        resp.raise_for_status()
-        m = re.search(r'<img id="loginform-verifycode-image" src="([^"]+)"', resp.text)
-        if not m:
-            raise Exception(f"{FILE_TAG} Captcha image URL not found on login page")
-        return urljoin(base_url, m.group(1))
 
     def rsa_encrypt(password: str, public_key_str: str):
         key = RSA.importKey(public_key_str)
@@ -67,49 +51,67 @@ def login() -> None:
 
     base_url = urljoin(get_available_location(DEFAULT_LOCATION), "login")
 
-    # 获取公钥
-    public_key = get_public_key(session, base_url)
+    # Keep key, captcha and CSRF from the same page; refresh unreadable captchas.
+    for attempt in range(3):
+        resp = session.get(base_url)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        public = soup.select_one("#public")
+        captcha = soup.select_one("#loginform-verifycode-image")
+        csrf_param = soup.select_one('meta[name="csrf-param"]')
+        csrf_token = soup.select_one('meta[name="csrf-token"]')
+        if not public or not public.get("value"):
+            if soup.select_one(".query-online") is not None:
+                return
+            raise RuntimeError(f"{FILE_TAG} Public key not found on login page")
+        if not captcha or not captcha.get("src"):
+            raise RuntimeError(f"{FILE_TAG} Captcha image URL not found on login page")
+        if (
+            not csrf_param
+            or not csrf_param.get("content")
+            or not csrf_token
+            or not csrf_token.get("content")
+        ):
+            raise RuntimeError(f"{FILE_TAG} CSRF parameter or token not found")
+        public_key = str(public["value"])
+        captcha_url = urljoin(resp.url, str(captcha["src"]))
+        try:
+            verify_code = run_ocr(captcha_url, retries=1)
+        except CaptchaRecognitionError:
+            if attempt == 2:
+                raise
+            logger.warning(f"{FILE_TAG} Refreshing login page after unreadable captcha")
+            continue
 
-    # 获取验证码图片URL
-    captcha_url = get_captcha_url(session, base_url)
+        # 加密密码
+        username = config["account"]
+        password = get_password()
+        if not password:
+            raise Exception(f"{FILE_TAG} Password not available from keyring")
+        encrypted_pwd = rsa_encrypt(password, public_key)
 
-    # 识别验证码
-    verify_code = run_ocr(captcha_url)
+        csrf_param = str(csrf_param["content"])
+        csrf_token = str(csrf_token["content"])
 
-    # 加密密码
-    username = config["account"]
-    password = get_password()
-    if not password:
-        raise Exception(f"{FILE_TAG} Password not available from keyring")
-    encrypted_pwd = rsa_encrypt(password, public_key)
+        # 构造表单
+        data = {
+            "LoginForm[username]": username,
+            "LoginForm[password]": encrypted_pwd,
+            "LoginForm[verifyCode]": verify_code,
+            csrf_param: csrf_token,
+        }
 
-    # 获取csrf参数和token
-    resp = session.get(base_url)
-    resp.raise_for_status()
-    csrf_param = re.search(r'<meta name="csrf-param" content="([^"]+)"', resp.text)
-    csrf_token = re.search(r'<meta name="csrf-token" content="([^"]+)"', resp.text)
-    if not csrf_param or not csrf_token:
-        raise Exception(f"{FILE_TAG} CSRF parameter or token not found")
-    csrf_param = csrf_param.group(1)
-    csrf_token = csrf_token.group(1)
+        # 发送登录请求
+        resp = session.post(base_url, data=data)
+        resp.raise_for_status()
 
-    # 构造表单
-    data = {
-        "LoginForm[username]": username,
-        "LoginForm[password]": encrypted_pwd,
-        "LoginForm[verifyCode]": verify_code,
-        csrf_param: csrf_token,
-    }
+        if check_login(session):
+            logger.info(f"{FILE_TAG} Login successful")
+            return
 
-    # 发送登录请求
-    resp = session.post(base_url, data=data)
-    resp.raise_for_status()
+        raise Exception(f"{FILE_TAG} Login failed")
 
-    if check_login(session):
-        logger.info(f"{FILE_TAG} Login successful")
-        return
-
-    raise Exception(f"{FILE_TAG} Login failed")
+    raise CaptchaRecognitionError(f"{FILE_TAG} Captcha attempts exhausted")
 
 
 def get_online_ips() -> List[str]:
@@ -149,8 +151,8 @@ def send_certification(ip: str) -> bool:
     resp = session.get(url)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
-    csrf_param = soup.find("meta", attrs={"name": "csrf-param"})
-    csrf_token = soup.find("meta", attrs={"name": "csrf-token"})
+    csrf_param = soup.select_one('meta[name="csrf-param"]')
+    csrf_token = soup.select_one('meta[name="csrf-token"]')
     if not csrf_param or not csrf_token:
         raise Exception(f"{FILE_TAG} CSRF parameter or token not found")
     csrf_param = str(csrf_param["content"])
@@ -175,14 +177,19 @@ def send_certification(ip: str) -> bool:
 
     # 检查是否有错误信息
     soup = BeautifulSoup(resp.text, "html.parser")
-    error_div = soup.find("div", class_="alert-danger")
+    error_div = soup.select_one("div.alert-danger")
     if error_div:
         # 提取错误文本
-        error_text = error_div.get_text(strip=True).replace("x", "", 1).strip()
+        error_text = error_div.get_text(strip=True).lstrip("×x ")
         logger.warning(
             f"{FILE_TAG} Certification request failed, IP: {ip}, Error: {error_text}"
         )
         return False
 
+    if ip not in get_online_ips():
+        logger.warning(
+            f"{FILE_TAG} Certification not confirmed in online list, IP: {ip}"
+        )
+        return False
     logger.info(f"{FILE_TAG} Certification request successful, IP: {ip}")
     return True
