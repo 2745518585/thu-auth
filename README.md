@@ -31,7 +31,7 @@ thu-auth
 ```yaml
 account: username                   # 清华大学用户电子身份用户名
 
-password:
+secret:
   service_name: thu-auth            # 密码在系统安全存储中的服务名称
 
 devices:
@@ -45,6 +45,16 @@ config:
   allow_force_attempt: true         # 是否允许在设备无法通过 ping 检测时强制尝试认证（适用于认证设备与目标设备不在同一网段或认证设备位于校外的情况）
   force_attempt_interval: 600       # 强制尝试认证的时间间隔，单位为秒
 ```
+
+### 故障恢复
+
+现有 `secret.service_name` 配置和凭据存储键保持兼容。旧示例中的 `password.service_name` 也可直接使用；同时存在时以 `secret` 为准。读取配置不会自动重写文件，配置向导会保留自定义字段，并通过原子替换保存；取消输入或保存失败时不会覆盖原文件。时间参数必须是正整数。
+
+服务遇到网络超时、登录失败、配置暂时不可用等异常时会记录日志并自动重试。连续失败时，重试间隔从扫描间隔逐步增加到 300 秒（若扫描间隔本身超过 300 秒，则保持该间隔）；恢复后回到正常扫描频率。启动时配置不可用则从 60 秒开始重试。修改配置或修复密码、指纹后无需重启。
+
+单个设备处理异常不会阻止其他设备扫描。失败周期后会重建网络会话并重新检测直连/WebVPN；GET/HEAD 请求最多尝试 3 次，登录和认证 POST 不自动重放。验证码无法识别时最多刷新登录页 3 次，认证提交后通过在线列表核实结果。文件日志不可写时继续使用控制台日志。按 Ctrl+C 可正常停止服务。
+
+日志中的 URL 查询参数、密码、指纹及 WebVPN 密钥字段会隐藏，文件日志仍保留异常堆栈用于排查。此规则适用于新日志，已有历史日志不会改写。临时故障可以自动恢复，但密码错误、指纹需二次认证或终端未接入网络仍需修复对应条件。
 
 ### WebVPN
 
@@ -65,6 +75,22 @@ config:
 ```bash
 thu-auth --fingerprint
 ```
+
+## 开发与验证
+
+```bash
+python -m pip install -e .
+python -m pip install ruff pyright build
+python -m unittest discover -s tests -v
+ruff check src tests entry.py
+ruff format --check src tests entry.py
+pyright
+python -m build
+```
+
+测试使用模拟网络和临时配置，不会读取或修改真实凭据。CI 会在 Windows、Linux 和 Python 3.12、3.13 上检查代码、运行测试并验证安装后的命令入口。
+
+如需生成独立可执行文件，可额外安装 PyInstaller 后运行 `pyinstaller thu-auth.spec`，该打包配置会包含验证码识别模型文件。
 
 ## 许可证
 
