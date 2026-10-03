@@ -1,9 +1,14 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "thu-network-autoauth"
 version = "0.2.0"
-description = "Add your description here"
+description = "Automatically authenticate monitored devices on the Tsinghua campus network"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
 dependencies = [
     "bs4>=0.0.2",
     "ddddocr>=1.6.1",
@@ -16,7 +21,24 @@ dependencies = [
     "pyyaml>=6.0.3",
     "questionary>=2.1.1",
     "requests>=2.33.1",
+    # Security floors for transitive networking, image and keyring dependencies.
+    "cryptography>=50.0.0",
+    "idna>=3.15",
+    "pillow>=12.3.0",
+    "soupsieve>=2.9.0",
+    "urllib3>=2.8.0",
 ]
 
 [project.scripts]
 thu-auth = "thu_network_autoauth.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"

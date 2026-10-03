@@ -1,0 +1,4 @@
+include config-example.yaml
+include entry.py
+include thu-auth.spec
+include THIRD-PARTY-LICENSES.md
