@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thu-network-autoauth"
-version = "0.2.0"
+version = "0.2.1"
 description = "Automatically authenticate monitored devices on the Tsinghua campus network"
 readme = "README.md"
 requires-python = ">=3.12"

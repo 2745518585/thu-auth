@@ -2,3 +2,5 @@ include config-example.yaml
 include entry.py
 include thu-auth.spec
 include THIRD-PARTY-LICENSES.md
+include CHANGELOG.md
+recursive-include docs *.md
