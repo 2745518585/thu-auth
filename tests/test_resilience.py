@@ -56,6 +56,7 @@ def response(html="", status=200, url="https://usereg.tsinghua.edu.cn/login"):
     resp._content = html.encode()
     resp._content_consumed = True
     resp.url = url
+    resp.request = requests.Request("GET", url).prepare()
     return resp
 
 
