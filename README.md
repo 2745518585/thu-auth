@@ -58,6 +58,8 @@ config:
 
 ### WebVPN
 
+访问 `usereg.tsinghua.edu.cn` 时，本工具始终绕过系统、环境变量和会话中配置的 HTTP/SOCKS 代理，使用本机网络和 DNS 解析；无需修改现有配置。此规则覆盖连通性探测、登录、验证码和认证请求，WebVPN 及身份认证地址仍沿用原有代理设置。如果代理软件启用了 TUN、透明代理或 DNS 劫持，还需在该软件中为 `usereg.tsinghua.edu.cn` 配置直连与本地 DNS 规则。
+
 开启允许通过 WebVPN 进行认证后，当本工具检测到无法直接访问自服务平台时，将自动通过 WebVPN 进行认证。
 
 > [!IMPORTANT]
