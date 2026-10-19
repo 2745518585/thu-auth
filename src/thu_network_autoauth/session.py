@@ -1,4 +1,5 @@
 import time
+from urllib.parse import urlsplit
 
 import requests
 
@@ -10,6 +11,15 @@ session = None
 class SessionWithTimeout(requests.Session):
     def __init__(self):
         super().__init__()
+
+    def send(self, request: requests.PreparedRequest, **kwargs) -> requests.Response:
+        # Apply at send time so redirects and environment/session proxies are covered.
+        # Keep WebVPN and identity-provider requests on their existing proxy route.
+        hostname = urlsplit(request.url or "").hostname
+        if hostname and hostname.rstrip(".").lower() == "usereg.tsinghua.edu.cn":
+            kwargs["proxies"] = {}
+            request.headers.pop("Proxy-Authorization", None)
+        return super().send(request, **kwargs)
 
     def request(self, *args, **kwargs) -> requests.Response:
         if kwargs.get("timeout") is None:

@@ -1,5 +1,6 @@
 import copy
 import logging
+import os
 import runpy
 import sys
 import tempfile
@@ -55,6 +56,7 @@ def response(html="", status=200, url="https://usereg.tsinghua.edu.cn/login"):
     resp._content = html.encode()
     resp._content_consumed = True
     resp.url = url
+    resp.request = requests.Request("GET", url).prepare()
     return resp
 
 
@@ -70,6 +72,85 @@ class ResilienceTests(unittest.TestCase):
     def tearDown(self):
         webvpn.reset_location_cache()
         session.reset_session()
+
+    def test_usereg_bypasses_environment_session_and_explicit_proxies(self):
+        proxy = "socks5h://127.0.0.1:9"
+        with (
+            patch.dict(
+                os.environ,
+                {"HTTP_PROXY": proxy, "HTTPS_PROXY": proxy, "ALL_PROXY": proxy},
+            ),
+            patch.object(
+                requests.adapters.HTTPAdapter, "send", return_value=response()
+            ) as send,
+            session.SessionWithTimeout() as client,
+        ):
+            client.proxies = {"https": proxy}
+            for url in (
+                "https://usereg.tsinghua.edu.cn/",
+                "https://usereg.tsinghua.edu.cn/login",
+                "https://usereg.tsinghua.edu.cn/captcha?v=1",
+                "https://USEREG.tsinghua.edu.cn.:443/certification",
+                "http://usereg.tsinghua.edu.cn/home",
+            ):
+                client.get(
+                    url,
+                    timeout=2,
+                    proxies={"https": proxy, "http": proxy},
+                    headers={"Proxy-Authorization": "Basic test"},
+                )
+                self.assertEqual(send.call_args.kwargs["proxies"], {})
+                self.assertNotIn("Proxy-Authorization", send.call_args.args[0].headers)
+
+    def test_other_hosts_keep_explicit_proxy(self):
+        proxy = "http://127.0.0.1:9"
+        with (
+            patch.object(
+                requests.adapters.HTTPAdapter, "send", return_value=response()
+            ) as send,
+            session.SessionWithTimeout() as client,
+        ):
+            for host in (
+                "webvpn.tsinghua.edu.cn",
+                "id.tsinghua.edu.cn",
+                "usereg.tsinghua.edu.cn.example.test",
+                "example.test",
+            ):
+                client.get(f"https://{host}/", timeout=2, proxies={"https": proxy})
+                self.assertEqual(send.call_args.kwargs["proxies"]["https"], proxy)
+
+    def test_redirects_apply_proxy_policy_for_each_destination(self):
+        proxy = "http://127.0.0.1:9"
+        start = "https://webvpn.tsinghua.edu.cn/"
+        direct = "https://usereg.tsinghua.edu.cn/home"
+        target = "https://id.tsinghua.edu.cn/"
+        first = response(status=302, url=start)
+        first.headers["Location"] = direct
+        second = response(status=302, url=direct)
+        second.headers["Location"] = target
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "HTTPS_PROXY": proxy,
+                    "https_proxy": proxy,
+                    "NO_PROXY": "",
+                    "no_proxy": "",
+                },
+            ),
+            patch.object(
+                requests.adapters.HTTPAdapter,
+                "send",
+                side_effect=[first, second, response(url=target)],
+            ) as send,
+            session.SessionWithTimeout() as client,
+        ):
+            client.get(start, timeout=2)
+        calls = send.call_args_list
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls[0].kwargs["proxies"]["https"], proxy)
+        self.assertEqual(calls[1].kwargs["proxies"], {})
+        self.assertEqual(calls[2].kwargs["proxies"]["https"], proxy)
 
     def test_get_retries_timeout_and_preserves_timeout(self):
         good = response()
